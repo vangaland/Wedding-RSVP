@@ -1,5 +1,3 @@
-// App.jsx - Paste this into src/App.jsx in your GitHub repo
-
 import { useState, useEffect } from "react";
 
 const PALETTE = {
@@ -16,7 +14,7 @@ const SHEET_URL = "https://script.google.com/macros/s/AKfycbwWkB-CnBQu0WVkGMHdSL
 
 const initialForm = {
   name: "", email: "", phone: "", attending: "",
-  guests: 1, dietary: "", city: "", message: "",
+  guests: 1, dietary: "", city: "", events: "", message: "",
 };
 
 export default function App() {
@@ -26,23 +24,16 @@ export default function App() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [rsvps, setRsvps] = useState([]);
-  const [adminLoading, setAdminLoading] = useState(false);
-  const [filter, setFilter] = useState("all");
-  const [adminCode, setAdminCode] = useState("");
-  const [adminUnlocked, setAdminUnlocked] = useState(false);
-  const ADMIN_CODE = "shivli2026"; // Change this to whatever you want
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has("admin")) setIsAdminMode(true);
   }, []);
 
-  useEffect(() => {}, []);
-
   const handleSubmit = async () => {
     if (!form.name || !form.attending) { setError("Please fill in your name and RSVP response."); return; }
     if (!form.email && !form.phone) { setError("Please provide at least an email or phone number."); return; }
+    if (form.attending === "yes" && !form.events) { setError("Please select which events you'll be attending."); return; }
     setError("");
     setLoading(true);
     try {
@@ -60,21 +51,6 @@ export default function App() {
     setLoading(false);
   };
 
-  const attending = rsvps.filter(r => r.attending === "yes");
-  const notAttending = rsvps.filter(r => r.attending === "no");
-  const totalGuests = attending.reduce((s, r) => s + Number(r.guests || 1), 0);
-  const filtered = filter === "all" ? rsvps : filter === "yes" ? attending : notAttending;
-
-  const exportCSV = () => {
-    const headers = ["Name","Email","Phone","Attending","Guests","Dietary","City","Message","Submitted"];
-    const rows = rsvps.map(r => [r.name,r.email,r.phone,r.attending,r.guests,r.dietary,r.city,r.message,new Date(r.timestamp).toLocaleString()]);
-    const csv = [headers,...rows].map(r => r.map(c => `"${c||""}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "rsvps.csv"; a.click();
-  };
-
   const inputStyle = {
     width: "100%", padding: "10px 14px",
     border: `1px solid ${PALETTE.secondary}`,
@@ -87,6 +63,12 @@ export default function App() {
     display: "block", fontSize: 11, letterSpacing: 2,
     color: PALETTE.muted, textTransform: "uppercase", marginBottom: 6,
   };
+
+  const eventOptions = [
+    { val: "morning", label: "🌅 Morning Ceremony", sub: "Starts at 7:30 AM" },
+    { val: "reception", label: "🥂 Reception Dinner", sub: "Starts at 5:30 PM" },
+    { val: "both", label: "✨ Both Events", sub: "Full day celebration" },
+  ];
 
   return (
     <div style={{ fontFamily: "Georgia, serif", minHeight: "100vh", background: PALETTE.bg, paddingBottom: 60 }}>
@@ -141,11 +123,12 @@ export default function App() {
               </div>
             ))}
 
+            {/* Attending */}
             <div style={{ marginBottom: 20 }}>
               <label style={labelStyle}>Will you be attending? *</label>
               <div style={{ display: "flex", gap: 12 }}>
                 {[{ val: "yes", label: "Joyfully accepts" }, { val: "no", label: "Regretfully declines" }].map(({ val, label }) => (
-                  <button key={val} onClick={() => setForm({ ...form, attending: val })} style={{
+                  <button key={val} onClick={() => setForm({ ...form, attending: val, events: "" })} style={{
                     flex: 1, padding: "12px 10px",
                     background: form.attending === val ? PALETTE.primary : "#fff",
                     color: form.attending === val ? "#fff" : PALETTE.muted,
@@ -159,12 +142,36 @@ export default function App() {
 
             {form.attending === "yes" && (
               <>
+                {/* Events */}
+                <div style={{ marginBottom: 20 }}>
+                  <label style={labelStyle}>Which events will you be attending? *</label>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {eventOptions.map(({ val, label, sub }) => (
+                      <button key={val} onClick={() => setForm({ ...form, events: val })} style={{
+                        padding: "14px 18px",
+                        background: form.events === val ? PALETTE.light : "#fff",
+                        color: PALETTE.dark,
+                        border: `1px solid ${form.events === val ? PALETTE.primary : PALETTE.secondary}`,
+                        cursor: "pointer", fontFamily: "Georgia, serif",
+                        borderRadius: 2, textAlign: "left",
+                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                      }}>
+                        <span style={{ fontSize: 14 }}>{label}</span>
+                        <span style={{ fontSize: 11, color: PALETTE.muted, fontStyle: "italic" }}>{sub}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Guests */}
                 <div style={{ marginBottom: 20 }}>
                   <label style={labelStyle}>Number of guests (including yourself)</label>
                   <select value={form.guests} onChange={e => setForm({ ...form, guests: e.target.value })} style={inputStyle}>
                     {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
                   </select>
                 </div>
+
+                {/* Dietary */}
                 <div style={{ marginBottom: 20 }}>
                   <label style={labelStyle}>Dietary preferences / restrictions</label>
                   <input type="text" placeholder="e.g. Vegetarian, Vegan, Nut allergy..."
@@ -173,6 +180,7 @@ export default function App() {
               </>
             )}
 
+            {/* Message */}
             <div style={{ marginBottom: 28 }}>
               <label style={labelStyle}>A message for the couple (optional)</label>
               <textarea placeholder="Share your wishes..." value={form.message}
@@ -205,6 +213,15 @@ export default function App() {
                 ? `Thank you ${form.name}! We're so excited to celebrate with you on December 14th at Valura, Bangalore.`
                 : `Thank you ${form.name} for letting us know. We'll be thinking of you on our special day.`}
             </div>
+            {form.attending === "yes" && form.events && (
+              <div style={{ marginTop: 16, padding: "12px 20px", background: PALETTE.light, borderRadius: 2, fontSize: 13, color: PALETTE.dark }}>
+                You're joining us for: <strong>
+                  {form.events === "morning" ? "Morning Ceremony 🌅" :
+                   form.events === "reception" ? "Reception Dinner 🥂" :
+                   "Both Events ✨"}
+                </strong>
+              </div>
+            )}
             <div style={{ marginTop: 28, fontSize: 13, color: PALETTE.primary, fontStyle: "italic" }}>— Ruchita & Shivang</div>
             <button onClick={() => { setSubmitted(false); setForm(initialForm); }} style={{
               marginTop: 28, padding: "10px 24px", background: "transparent", color: PALETTE.muted,
@@ -216,112 +233,22 @@ export default function App() {
           </div>
         )}
 
-        {/* ADMIN LOGIN */}
-        {view === "admin" && !adminUnlocked && (
+        {/* ADMIN - points to Google Sheet */}
+        {view === "admin" && (
           <div style={{ background: PALETTE.cream, border: `1px solid ${PALETTE.secondary}`, padding: "50px 36px", borderRadius: 4, textAlign: "center" }}>
-            <div style={{ fontSize: 18, color: PALETTE.dark, marginBottom: 8 }}>Admin Access</div>
-            <div style={{ fontSize: 13, color: PALETTE.muted, fontStyle: "italic", marginBottom: 24 }}>Enter the admin code to view RSVPs</div>
-            <input type="password" placeholder="Admin code" value={adminCode}
-              onChange={e => setAdminCode(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && adminCode === ADMIN_CODE && setAdminUnlocked(true)}
-              style={{ ...inputStyle, marginBottom: 16 }} />
-            <button onClick={() => { if (adminCode === ADMIN_CODE) { setAdminUnlocked(true); setError(""); } else setError("Wrong code."); }} style={{
-              width: "100%", padding: "12px", background: PALETTE.primary, color: "#fff",
-              border: "none", cursor: "pointer", fontSize: 12, letterSpacing: 3,
+            <div style={{ fontSize: 18, color: PALETTE.dark, marginBottom: 8 }}>Admin Dashboard</div>
+            <div style={{ fontSize: 13, color: PALETTE.muted, fontStyle: "italic", marginBottom: 28 }}>All RSVPs are collected in your Google Sheet</div>
+            <a href="https://docs.google.com/spreadsheets" target="_blank" rel="noreferrer" style={{
+              display: "inline-block", padding: "14px 32px",
+              background: PALETTE.primary, color: "#fff",
+              textDecoration: "none", fontSize: 12, letterSpacing: 3,
               textTransform: "uppercase", fontFamily: "Georgia, serif", borderRadius: 2,
-            }}>Enter</button>
-            {error && <div style={{ color: "#c0392b", fontSize: 13, marginTop: 12 }}>{error}</div>}
+            }}>
+              Open Google Sheet →
+            </a>
           </div>
         )}
 
-        {/* ADMIN DASHBOARD */}
-        {view === "admin" && adminUnlocked && (
-          <div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
-              {[
-                { label: "Total RSVPs", value: rsvps.length },
-                { label: "Attending", value: attending.length },
-                { label: "Total Guests", value: totalGuests },
-              ].map(({ label, value }) => (
-                <div key={label} style={{ background: PALETTE.cream, border: `1px solid ${PALETTE.secondary}`, padding: "20px 16px", borderRadius: 4, textAlign: "center" }}>
-                  <div style={{ fontSize: 32, color: PALETTE.primary, fontWeight: 600 }}>{value}</div>
-                  <div style={{ fontSize: 10, color: PALETTE.muted, letterSpacing: 2, textTransform: "uppercase", marginTop: 4 }}>{label}</div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
-              {["all","yes","no"].map(f => (
-                <button key={f} onClick={() => setFilter(f)} style={{
-                  padding: "7px 18px",
-                  background: filter === f ? PALETTE.primary : "transparent",
-                  color: filter === f ? "#fff" : PALETTE.muted,
-                  border: `1px solid ${PALETTE.primary}`, cursor: "pointer",
-                  fontSize: 11, letterSpacing: 2, textTransform: "uppercase",
-                  fontFamily: "Georgia, serif", borderRadius: 2,
-                }}>
-                  {f === "all" ? "All" : f === "yes" ? "Attending" : "Not Attending"}
-                </button>
-              ))}
-              <button onClick={exportCSV} style={{
-                marginLeft: "auto", padding: "7px 18px", background: PALETTE.dark, color: "#fff",
-                border: "none", cursor: "pointer", fontSize: 11, letterSpacing: 2,
-                textTransform: "uppercase", fontFamily: "Georgia, serif", borderRadius: 2,
-              }}>Export CSV</button>
-              <button onClick={loadRsvps} style={{
-                padding: "7px 18px", background: "transparent", color: PALETTE.muted,
-                border: `1px solid ${PALETTE.secondary}`, cursor: "pointer", fontSize: 11,
-                letterSpacing: 2, textTransform: "uppercase", fontFamily: "Georgia, serif", borderRadius: 2,
-              }}>Refresh</button>
-            </div>
-
-            {adminLoading ? (
-              <div style={{ textAlign: "center", color: PALETTE.muted, padding: 40, fontStyle: "italic" }}>Loading RSVPs...</div>
-            ) : filtered.length === 0 ? (
-              <div style={{ textAlign: "center", color: PALETTE.muted, padding: 40, fontStyle: "italic" }}>No RSVPs yet.</div>
-            ) : filtered.map(r => (
-              <div key={r.id} style={{
-                background: PALETTE.cream, border: `1px solid ${PALETTE.secondary}`,
-                borderLeft: `4px solid ${r.attending === "yes" ? PALETTE.primary : "#ccc"}`,
-                padding: "20px 24px", borderRadius: 4, marginBottom: 12,
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
-                  <div>
-                    <div style={{ fontSize: 18, color: PALETTE.dark, marginBottom: 4 }}>{r.name}</div>
-                    <div style={{ fontSize: 12, color: PALETTE.muted }}>
-                      {r.email && <span style={{ marginRight: 12 }}>✉ {r.email}</span>}
-                      {r.phone && <span>📞 {r.phone}</span>}
-                    </div>
-                  </div>
-                  <div style={{
-                    padding: "4px 14px", borderRadius: 20, fontSize: 11, letterSpacing: 1,
-                    textTransform: "uppercase", fontFamily: "Georgia, serif",
-                    background: r.attending === "yes" ? PALETTE.light : "#f0f0f0",
-                    color: r.attending === "yes" ? PALETTE.primary : "#999",
-                    border: `1px solid ${r.attending === "yes" ? PALETTE.primary : "#ddd"}`,
-                  }}>
-                    {r.attending === "yes" ? "✓ Attending" : "✗ Not Attending"}
-                  </div>
-                </div>
-                <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 20px" }}>
-                  {r.attending === "yes" && <div style={{ fontSize: 12, color: PALETTE.muted }}><span style={{ color: PALETTE.dark }}>Guests:</span> {r.guests}</div>}
-                  {r.city && <div style={{ fontSize: 12, color: PALETTE.muted }}><span style={{ color: PALETTE.dark }}>From:</span> {r.city}</div>}
-                  {r.dietary && <div style={{ fontSize: 12, color: PALETTE.muted }}><span style={{ color: PALETTE.dark }}>Dietary:</span> {r.dietary}</div>}
-                  <div style={{ fontSize: 11, color: "#bbb" }}>{new Date(r.timestamp).toLocaleString("en-IN")}</div>
-                </div>
-                {r.message && (
-                  <div style={{
-                    marginTop: 12, padding: "10px 14px", background: PALETTE.light, borderRadius: 2,
-                    fontSize: 13, color: PALETTE.dark, fontStyle: "italic",
-                    borderLeft: `2px solid ${PALETTE.primary}`,
-                  }}>
-                    "{r.message}"
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
