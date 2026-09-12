@@ -1,4 +1,4 @@
-// App.jsx - Paste this into src/App.jsx in your Replit React project
+// App.jsx - Paste this into src/App.jsx in your GitHub repo
 
 import { useState, useEffect } from "react";
 
@@ -12,24 +12,7 @@ const PALETTE = {
   bg: "#f0ebe3",
 };
 
-// ─── Simple localStorage-based storage (replaces Claude's window.storage) ───
-const storage = {
-  set: (key, value) => {
-    try { localStorage.setItem(key, value); return true; } catch { return false; }
-  },
-  get: (key) => {
-    try {
-      const v = localStorage.getItem(key);
-      return v ? { value: v } : null;
-    } catch { return null; }
-  },
-  list: (prefix) => {
-    try {
-      const keys = Object.keys(localStorage).filter(k => k.startsWith(prefix));
-      return { keys };
-    } catch { return { keys: [] }; }
-  },
-};
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbwWkB-CnBQu0WVkGMHdSLJyVZmZmNWDs1Yc8sSQwFMTH4Ffc79RmDdlu5ZbF2q4utLh/exec";
 
 const initialForm = {
   name: "", email: "", phone: "", attending: "",
@@ -55,40 +38,24 @@ export default function App() {
     if (params.has("admin")) setIsAdminMode(true);
   }, []);
 
-  const loadRsvps = () => {
-    setAdminLoading(true);
-    try {
-      const { keys } = storage.list("rsvp:");
-      if (!keys || keys.length === 0) { setRsvps([]); setAdminLoading(false); return; }
-      const entries = keys.map(k => {
-        try { const r = storage.get(k); return r ? JSON.parse(r.value) : null; }
-        catch { return null; }
-      });
-      setRsvps(entries.filter(Boolean).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
-    } catch (e) {
-      console.error(e);
-      setRsvps([]);
-    }
-    setAdminLoading(false);
-  };
+  useEffect(() => {}, []);
 
-  useEffect(() => {
-    if (view === "admin" && adminUnlocked) loadRsvps();
-  }, [view, adminUnlocked]);
-
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.name || !form.attending) { setError("Please fill in your name and RSVP response."); return; }
     if (!form.email && !form.phone) { setError("Please provide at least an email or phone number."); return; }
     setError("");
     setLoading(true);
     try {
-      const key = `rsvp:${Date.now()}_${Math.random().toString(36).slice(2)}`;
-      const entry = { ...form, timestamp: new Date().toISOString(), id: key };
-      storage.set(key, JSON.stringify(entry));
+      await fetch(SHEET_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
       setSubmitted(true);
     } catch (e) {
       console.error(e);
-      setSubmitted(true);
+      setError("Something went wrong. Please try again.");
     }
     setLoading(false);
   };
