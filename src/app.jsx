@@ -9,6 +9,7 @@ const PALETTE = {
   muted: "#A67C7A",
   bg: "#f0ebe3",
 };
+
 const SHEET_URL = "https://script.google.com/macros/s/AKfycbwsFoeQig1O6ridWFxHxJKstaFRLFklAG10xazTHWsY1Ior8eee7WXNH7oNZPb6Da06/exec";
 
 const initialForm = {
@@ -36,11 +37,12 @@ export default function App() {
     setError("");
     setLoading(true);
     try {
-      await fetch(SHEET_URL, {
-        method: "POST",
+      const params = new URLSearchParams();
+      Object.keys(form).forEach(key => params.append(key, form[key]));
+      
+      await fetch(`${SHEET_URL}?${params.toString()}`, {
+        method: "GET",
         mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
       });
       setSubmitted(true);
     } catch (e) {
