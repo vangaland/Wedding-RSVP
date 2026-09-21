@@ -9,8 +9,7 @@ const PALETTE = {
   muted: "#A67C7A",
   bg: "#f0ebe3",
 };
-
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbwWkB-CnBQu0WVkGMHdSLJyVZmZmNWDs1Yc8sSQwFMTH4Ffc79RmDdlu5ZbF2q4utLh/exec";
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbwsFoeQig1O6ridWFxHxJKstaFRLFklAG10xazTHWsY1Ior8eee7WXNH7oNZPb6Da06/exec";
 
 const initialForm = {
   name: "", email: "", phone: "", attending: "",
