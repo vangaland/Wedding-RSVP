@@ -108,7 +108,7 @@ export default function App() {
           <div style={{ background: PALETTE.cream, border: `1px solid ${PALETTE.secondary}`, padding: "40px 36px", borderRadius: 4 }}>
             <div style={{ textAlign: "center", marginBottom: 32 }}>
               <div style={{ fontSize: 22, color: PALETTE.dark, marginBottom: 6 }}>Kindly RSVP</div>
-              <div style={{ fontSize: 13, color: PALETTE.muted, fontStyle: "italic" }}>Please respond by 1st November 2026</div>
+              <div style={{ fontSize: 13, color: PALETTE.muted, fontStyle: "italic" }}>Please respond by 15th October 2026</div>
             </div>
 
             {[
